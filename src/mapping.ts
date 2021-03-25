@@ -1,4 +1,5 @@
-import { BigInt } from "@graphprotocol/graph-ts"
+import { BigInt, ByteArray } from "@graphprotocol/graph-ts"
+import { log } from '@graphprotocol/graph-ts'
 import {
   Triptcip,
   Approval,
@@ -12,72 +13,93 @@ import {
   Transfer,
   Unpaused
 } from "../generated/Triptcip/Triptcip"
-import { ExampleEntity } from "../generated/schema"
+import { Token, Auction, AuctionBid, AuctionClaim as AuctionClaimEntity } from "../generated/schema"
 
-export function handleApproval(event: Approval): void {
-  // Entities can be loaded from the store using a string ID; this ID
-  // needs to be unique across all entities of the same type
-  let entity = ExampleEntity.load(event.transaction.from.toHex())
+export function handleApproval(event: Approval): void {}
+
+export function handleApprovalForAll(event: ApprovalForAll): void {}
+
+export function handleAuctionClaim(event: AuctionClaim): void {
+  let newClaimId = concat(event.params.owner, event.params.tokenId).toHex()
+  let entity = AuctionClaimEntity.load(newClaimId)
 
   // Entities only exist after they have been saved to the store;
   // `null` checks allow to create entities on demand
   if (entity == null) {
-    entity = new ExampleEntity(event.transaction.from.toHex())
-
-    // Entity fields can be set using simple assignments
-    entity.count = BigInt.fromI32(0)
+    entity = new AuctionClaimEntity(newClaimId)
   }
-
-  // BigInt and BigDecimal math are supported
-  entity.count = entity.count + BigInt.fromI32(1)
 
   // Entity fields can be set based on event parameters
   entity.owner = event.params.owner
-  entity.approved = event.params.approved
+  entity.tokenId = event.params.tokenId
+  entity.timestamp = event.params.timestamp
+  
+  // Entities can be written to the store with `.save()`
+  entity.save()
+
+}
+
+export function handleAuctionCreate(event: AuctionCreate): void {
+  let newAuctionId = concat(event.params.owner, event.params.tokenId).toHex()
+  let entity = Auction.load(newAuctionId)
+
+  // Entities only exist after they have been saved to the store;
+  // `null` checks allow to create entities on demand
+  if (entity == null) {
+    entity = new Auction(newAuctionId)
+  }
+
+  // Entity fields can be set based on event parameters
+  entity.owner = event.params.owner
+  entity.tokenId = event.params.tokenId
+  entity.timestamp = event.params.timestamp
+  entity.reservePrice = event.params.reservePrice
+
+  // Entities can be written to the store with `.save()`
+  entity.save()
+}
+
+export function handleAuctionPlaceBid(event: AuctionPlaceBid): void {
+  let newBidId = concat(event.params.owner, event.params.tokenId).toHex()
+  let entity = AuctionBid.load(newBidId)
+
+  // Entities only exist after they have been saved to the store;
+  // `null` checks allow to create entities on demand
+  if (entity == null) {
+    entity = new AuctionBid(newBidId)
+  }
+
+  // Entity fields can be set based on event parameters
+  entity.owner = event.params.owner
+  entity.tokenId = event.params.tokenId
+  entity.timestamp = event.params.timestamp
+  entity.amount = event.params.amount
+  entity.deadline = event.params.deadline
+
+  // Entities can be written to the store with `.save()`
+  entity.save()
+}
+
+export function handleCreateToken(event: CreateToken): void {
+  let newTokenId = concat(event.params.owner, event.params.tokenId).toHex()
+  let entity = Token.load(newTokenId)
+
+  // Entities only exist after they have been saved to the store;
+  // `null` checks allow to create entities on demand
+  if (entity == null) {
+    entity = new Token(newTokenId)
+  }
+
+  // Entity fields can be set based on event parameters
+  entity.owner = event.params.owner
+  entity.tokenId = event.params.tokenId
+  entity.timestamp = event.params.timestamp
+  entity.royalty = event.params.royalty
 
   // Entities can be written to the store with `.save()`
   entity.save()
 
-  // Note: If a handler doesn't require existing field values, it is faster
-  // _not_ to load the entity from the store. Instead, create it fresh with
-  // `new Entity(...)`, set the fields that should be updated and save the
-  // entity back to the store. Fields that were not set or unset remain
-  // unchanged, allowing for partial updates to be applied.
-
-  // It is also possible to access smart contracts from mappings. For
-  // example, the contract that has emitted the event can be connected to
-  // with:
-  //
-  // let contract = Contract.bind(event.address)
-  //
-  // The following functions can then be called on this contract to access
-  // state variables and other data:
-  //
-  // - contract.auctions(...)
-  // - contract.balanceOf(...)
-  // - contract.createToken(...)
-  // - contract.getApproved(...)
-  // - contract.getMinter(...)
-  // - contract.getRoyalty(...)
-  // - contract.isApprovedForAll(...)
-  // - contract.name(...)
-  // - contract.owner(...)
-  // - contract.ownerOf(...)
-  // - contract.paused(...)
-  // - contract.supportsInterface(...)
-  // - contract.symbol(...)
-  // - contract.tokenURI(...)
 }
-
-export function handleApprovalForAll(event: ApprovalForAll): void {}
-
-export function handleAuctionClaim(event: AuctionClaim): void {}
-
-export function handleAuctionCreate(event: AuctionCreate): void {}
-
-export function handleAuctionPlaceBid(event: AuctionPlaceBid): void {}
-
-export function handleCreateToken(event: CreateToken): void {}
 
 export function handleOwnershipTransferred(event: OwnershipTransferred): void {}
 
@@ -86,3 +108,15 @@ export function handlePaused(event: Paused): void {}
 export function handleTransfer(event: Transfer): void {}
 
 export function handleUnpaused(event: Unpaused): void {}
+
+
+function concat(a: ByteArray, b: BigInt): ByteArray {
+  let out = new Uint8Array(a.length + b.length);
+  for (let i = 0; i < a.length; i++) {
+    out[i] = a[i];
+  }
+  for (let j = 0; j < b.length; j++) {
+    out[a.length + j] = b[j];
+  }
+  return out as ByteArray;
+}

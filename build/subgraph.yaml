@@ -1,6 +1,6 @@
 specVersion: 0.0.2
 schema:
-  file: ./schema.graphql
+  file: schema.graphql
 dataSources:
   - kind: ethereum/contract
     name: Triptcip
@@ -25,7 +25,7 @@ dataSources:
         - Unpaused
       abis:
         - name: Triptcip
-          file: ./abis/Triptcip.json
+          file: Triptcip\abis\Triptcip.json
       eventHandlers:
         - event: Approval(indexed address,indexed address,indexed uint256)
           handler: handleApproval
@@ -47,4 +47,4 @@ dataSources:
           handler: handleTransfer
         - event: Unpaused(address)
           handler: handleUnpaused
-      file: ./src/mapping.ts
+      file: Triptcip\Triptcip.wasm
